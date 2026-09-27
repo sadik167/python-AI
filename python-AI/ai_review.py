@@ -49,5 +49,5 @@ response = client.chat.completions.create(
 review = response.choices[0].message.content
 
 with open("ai-review.md", "w") as f:
-  f.write("# 🤖 AI DevOps Review (Grok)\n\n")
+  f.write("# AI DevOps Review (Grok)\n\n")
   f.write(review)
