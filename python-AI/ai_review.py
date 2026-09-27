@@ -3,7 +3,7 @@ from openai import OpenAI
 
 # Groq uses the OpenAI library format via their free endpoint
 client = OpenAI(
-    api_key=os.environ["GROQ_API_KEY"],
+    api_key=os.environ["XAI_API_KEY"],
     base_url="https://api.groq.com/openai/v1",
 )
 
