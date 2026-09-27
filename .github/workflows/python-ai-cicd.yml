@@ -28,7 +28,6 @@ jobs:
         working-directory: ./python-AI
         run: |
           pip install -r requirements.txt
-          pip install pytest
         
       - name: Run Tests
         run: |
