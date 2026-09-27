@@ -36,7 +36,7 @@ CODE CHANGES:
 """
 
 response = client.chat.completions.create(
-    model="llama-3.3-70b-versatile",
+    model="openai/gpt-oss-20b",
     messages=[
         {"role": "system", "content": "You are an expert DevOps engineer."},
         {"role": "user", "content": prompt},
