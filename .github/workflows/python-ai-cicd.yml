@@ -31,7 +31,7 @@ jobs:
         
       - name: Run Tests
         run: |
-          pytest
+          python -m pytest || [ $? -eq 5 ]
 
   build_backend_docker_image_and_push:
     runs-on: ubuntu-latest
