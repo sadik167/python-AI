@@ -42,5 +42,5 @@ response = client.responses.create(
 review = response.output_text
 
 with open("ai-review.md", "w") as f:
-    f.write("# AI DevOps Review\n\n")
+    f.write("# AI DevOps Review for CI CD\n\n")
     f.write(review)
