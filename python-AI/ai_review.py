@@ -1,34 +1,53 @@
-name: PY AI Code Review
+import os
+from openai import OpenAI
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+# Initialize client pointing to xAI's API endpoint
+client = OpenAI(
+    api_key=os.environ["XAI_API_KEY"],
+    base_url="https://api.x.ai/v1",
+)
 
-jobs:
-  ai-review:
-    runs-on: ubuntu-latest
+with open("changes.diff", "r") as f:
+  changes = f.read()
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+prompt = f"""
+You are a DevOps engineer performing a Pull Request review.
 
-      - name: Get changed files
-        run: |
-          git diff \
-            ${{ github.event.pull_request.base.sha }} \
-            ${{ github.event.pull_request.head.sha }} \
-            > changes.diff
+Review the following code changes specifically for:
 
-      - name: Install OpenAI SDK
-        run: pip install openai
+1. CI/CD problems
+2. Docker issues
+3. Kubernetes issues
+4. Security problems
+5. Infrastructure-as-Code problems
+6. DevOps best practices
 
-      - name: AI Review
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          python python-AI/ai_review.py
+Do NOT rewrite the entire code.
 
-      - name: Display AI Review
-        run: cat ai-review.md
+Return:
+- Critical issues
+- High-priority issues
+- Recommendations
+- Positive observations
+
+Keep the review practical and concise.
+
+CODE CHANGES:
+{changes}
+"""
+
+# Call Grok using the Chat Completions endpoint
+response = client.chat.completions.create(
+    model="grok-2-latest",
+    messages=[
+        {"role": "system", "content": "You are an expert DevOps engineer."},
+        {"role": "user", "content": prompt},
+    ],
+    temperature=0.2,
+)
+
+review = response.choices[0].message.content
+
+with open("ai-review.md", "w") as f:
+  f.write("# 🤖 AI DevOps Review (Grok)\n\n")
+  f.write(review)
