@@ -1,16 +1,24 @@
-name: PY AI Code Review
+name: Python AI CI/CD & Review Pipeline
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
+    branches: [ main ]
 
 permissions:
-  contents: write    
+  contents: write
+  pull-requests: write
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  ai-review:
+  ai-review-and-security:
+    name: Gitleaks & AI PR Review
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,23 +28,92 @@ jobs:
       - name: Run Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get changed files
-        run: |
-          git diff \
-            ${{ github.event.pull_request.base.sha }} \
-            ${{ github.event.pull_request.head.sha }} \
-            > changes.diff
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Install OpenAI SDK
+      - name: Install Review Dependencies
         run: pip install openai
 
-      - name: AI Review
+      - name: Generate PR Diff
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > python-AI/changes.diff
+
+      - name: Run AI Review
+        working-directory: ./python-AI
         env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
-          python python-AI/ai_review.py
+          python ai_review.py
 
-      - name: Display AI Review
-        run: cat ai-review.md
+      - name: Post AI Review as PR Comment
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f python-AI/ai-review.md ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body-file python-AI/ai-review.md
+          fi
+
+  # -----------------------------------------------------------
+  # 2. Test & Validate (Runs on both PRs and Pushes to main)
+  # -----------------------------------------------------------
+  compile:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: ./python-AI
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        working-directory: ./python-AI
+        run: |
+          python -m pytest || [ $? -eq 5 ]
+
+  # -----------------------------------------------------------
+  # 3. Build & Push Docker Image (Runs ONLY on Merge/Push to main)
+  # -----------------------------------------------------------
+  build_backend_docker_image_and_push:
+    name: Build & Push Docker Image
+    needs: compile
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DCOKER_USERNAME }}
+          password: ${{ secrets.DCOKERHUB_TOKEN }}
+
+      - name: Build and push docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./python-AI
+          file: ./python-AI/Dockerfile
+          push: true
+          tags: |
+            sadique167/pythonai:latest
+            sadique167/pythonai:${{ env.IMAGE_TAG }}
