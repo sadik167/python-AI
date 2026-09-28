@@ -17,12 +17,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Gitleaks Setup
-        uses: gitleaks/gitleaks-action@v2    
-
-      - name: Gitleaks Scan
-        run: |
-          gitleaks detect --source ./python-AI --exit-code 1    
+      - name: Run Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
 
       - name: Get changed files
         run: |
