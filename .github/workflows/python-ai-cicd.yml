@@ -14,6 +14,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Gitleaks Setup
+        uses: gitleaks/gitleaks-action@v2    
+
       - name: Gitleaks Scan
         run: |
           gitleaks detect --source ./python-AI --exit-code 1    
