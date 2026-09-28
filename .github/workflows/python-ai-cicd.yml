@@ -30,11 +30,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
       - name: Install Review Dependencies
         run: pip install openai
 
@@ -64,6 +59,7 @@ jobs:
   # -----------------------------------------------------------
   compile:
     name: Run Unit Tests
+    if: github.event_name=='push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
