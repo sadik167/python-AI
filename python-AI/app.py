@@ -23,7 +23,7 @@ def health():
 @app.route("/info")
 def info():
     return jsonify({
-        "application": "python-AI-DEMO-CICD",
+        "application": "python-AI-DEMO-CI",
         "version": os.getenv("APP_VERSION", "local"),
         "environment": os.getenv("ENVIRONMENT", "development"),
         "hostname": os.getenv("HOSTNAME", "local")
